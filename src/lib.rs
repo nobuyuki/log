@@ -359,7 +359,7 @@ const INITIALIZED: usize = 2;
 
 static MAX_LOG_LEVEL_FILTER: AtomicUsize = AtomicUsize::new(0);
 
-static LOG_LEVEL_NAMES: [&str; 6] = ["OFF", "ERROR", "WARN", "INFO", "DEBUG", "TRACE"];
+static LOG_LEVEL_NAMES: [&str; 7] = ["OFF", "FATAL", "ERROR", "WARN", "INFO", "DEBUG", "TRACE"];
 
 static SET_LOGGER_ERROR: &str = "attempted to set a logger after the logging system \
                                  was already initialized";
@@ -375,13 +375,15 @@ static LEVEL_PARSE_ERROR: &str =
 #[repr(usize)]
 #[derive(Copy, Eq, Debug, Hash)]
 pub enum Level {
+    /// The "fatal" level.
+    Fatal = 1,
     /// The "error" level.
     ///
     /// Designates very serious errors.
     // This way these line up with the discriminants for LevelFilter below
     // This works because Rust treats field-less enums the same way as C does:
     // https://doc.rust-lang.org/reference/items/enumerations.html#custom-discriminant-values-for-field-less-enumerations
-    Error = 1,
+    Error,
     /// The "warn" level.
     ///
     /// Designates hazardous situations.
@@ -533,11 +535,12 @@ impl fmt::Display for Level {
 impl Level {
     fn from_usize(u: usize) -> Option<Level> {
         match u {
-            1 => Some(Level::Error),
-            2 => Some(Level::Warn),
-            3 => Some(Level::Info),
-            4 => Some(Level::Debug),
-            5 => Some(Level::Trace),
+            1 => Some(Level::Fatal),
+            2 => Some(Level::Error),
+            3 => Some(Level::Warn),
+            4 => Some(Level::Info),
+            5 => Some(Level::Debug),
+            6 => Some(Level::Trace),
             _ => None,
         }
     }
@@ -575,6 +578,8 @@ impl Level {
 pub enum LevelFilter {
     /// A level lower than all log levels.
     Off,
+    /// Corresponds to the `Fatal` log level.
+    Fatal,
     /// Corresponds to the `Error` log level.
     Error,
     /// Corresponds to the `Warn` log level.
@@ -694,11 +699,12 @@ impl LevelFilter {
     fn from_usize(u: usize) -> Option<LevelFilter> {
         match u {
             0 => Some(LevelFilter::Off),
-            1 => Some(LevelFilter::Error),
-            2 => Some(LevelFilter::Warn),
-            3 => Some(LevelFilter::Info),
-            4 => Some(LevelFilter::Debug),
-            5 => Some(LevelFilter::Trace),
+            1 => Some(LevelFilter::Fatal),
+            2 => Some(LevelFilter::Error),
+            3 => Some(LevelFilter::Warn),
+            4 => Some(LevelFilter::Info),
+            5 => Some(LevelFilter::Debug),
+            6 => Some(LevelFilter::Trace),
             _ => None,
         }
     }
@@ -1524,12 +1530,14 @@ mod tests {
     fn test_levelfilter_from_str() {
         let tests = [
             ("off", Ok(LevelFilter::Off)),
+            ("fatal", Ok(LevelFilter::Fatal)),
             ("error", Ok(LevelFilter::Error)),
             ("warn", Ok(LevelFilter::Warn)),
             ("info", Ok(LevelFilter::Info)),
             ("debug", Ok(LevelFilter::Debug)),
             ("trace", Ok(LevelFilter::Trace)),
             ("OFF", Ok(LevelFilter::Off)),
+            ("FATAL", Ok(LevelFilter::Fatal)),
             ("ERROR", Ok(LevelFilter::Error)),
             ("WARN", Ok(LevelFilter::Warn)),
             ("INFO", Ok(LevelFilter::Info)),
@@ -1546,11 +1554,13 @@ mod tests {
     fn test_level_from_str() {
         let tests = [
             ("OFF", Err(ParseLevelError(()))),
+	    ("fatal", Ok(Level::Fatal)),
             ("error", Ok(Level::Error)),
             ("warn", Ok(Level::Warn)),
             ("info", Ok(Level::Info)),
             ("debug", Ok(Level::Debug)),
             ("trace", Ok(Level::Trace)),
+            ("FATAL", Ok(Level::Fatal)),
             ("ERROR", Ok(Level::Error)),
             ("WARN", Ok(Level::Warn)),
             ("INFO", Ok(Level::Info)),
@@ -1566,6 +1576,7 @@ mod tests {
     #[test]
     fn test_level_as_str() {
         let tests = &[
+            (Level::Fatal, "FATAL"),
             (Level::Error, "ERROR"),
             (Level::Warn, "WARN"),
             (Level::Info, "INFO"),
@@ -1620,6 +1631,7 @@ mod tests {
     fn test_level_filter_as_str() {
         let tests = &[
             (LevelFilter::Off, "OFF"),
+            (LevelFilter::Fatal, "FATAL"),
             (LevelFilter::Error, "ERROR"),
             (LevelFilter::Warn, "WARN"),
             (LevelFilter::Info, "INFO"),

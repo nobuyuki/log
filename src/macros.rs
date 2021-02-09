@@ -42,6 +42,30 @@ macro_rules! log {
     ($lvl:expr, $($arg:tt)+) => (log!(target: __log_module_path!(), $lvl, $($arg)+))
 }
 
+/// Logs a message at the fatal level.
+///
+/// # Examples
+///
+/// ```edition2018
+/// use log::fatal;
+///
+/// # fn main() {
+/// let (err_info, port) = ("No connection", 22);
+///
+/// fatal!("Fatal: {} on port {}", err_info, port);
+/// fatal!(target: "app_events", "App Error: {}, Port: {}", err_info, 22);
+/// # }
+/// ```
+#[macro_export(local_inner_macros)]
+macro_rules! fatal {
+    (target: $target:expr, $($arg:tt)+) => (
+        log!(target: $target, $crate::Level::Fatal, $($arg)+)
+    );
+    ($($arg:tt)+) => (
+        log!($crate::Level::Fatal, $($arg)+)
+    )
+}
+
 /// Logs a message at the error level.
 ///
 /// # Examples
